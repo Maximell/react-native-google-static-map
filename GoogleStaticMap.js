@@ -73,13 +73,13 @@ class GoogleStaticMap extends Component {
   static propTypes = {
     ...imagePropTypes,
 
-    latitude: PropTypes.string.isRequired,
+    latitude: PropTypes.string,
 
-    longitude: PropTypes.string.isRequired,
+    longitude: PropTypes.string,
 
     size: PropTypes.shape({
-      width: PropTypes.number.isRequired,
-      height: PropTypes.number.isRequired
+      width: PropTypes.number,
+      height: PropTypes.number
     }),
 
     /**
@@ -88,7 +88,7 @@ class GoogleStaticMap extends Component {
      *
      * @see https://developers.google.com/maps/documentation/staticmaps/intro#Zoomlevels
      */
-    zoom: PropTypes.number.isRequired,
+    zoom: PropTypes.number,
 
     /**
      * scale affects the number of pixels that are returned.
@@ -112,6 +112,18 @@ class GoogleStaticMap extends Component {
      */
     hasCenterMarker: PropTypes.bool,
 
+    /**
+     * @see https://developers.google.com/maps/documentation/maps-static/dev-guide#Paths
+     * currently only supports encoded polylines
+     */
+    path: PropTypes.string,
+    pathStyle: PropTypes.shape({
+      weight: PropTypes.string,
+      color: PropTypes.string,
+      fillColor: PropTypes.string,
+      geodesic: PropTypes.string
+    }),
+
     apiKey: PropTypes.string.isRequired,
   };
 
@@ -127,6 +139,7 @@ class GoogleStaticMap extends Component {
       <Image
         style={[this.props.style, this.props.size]}
         source={{uri: this.staticMapUrl}}
+        onLoadEnd={this.props.onLoadEnd ? () => this.props.onLoadEnd() : null}
       >
       {this.props.children}
       </Image>
@@ -140,6 +153,8 @@ class GoogleStaticMap extends Component {
       zoom,
       size,
       scale,
+      path,
+      pathStyle,
       format,
       mapType
       } = this.props;
@@ -147,7 +162,36 @@ class GoogleStaticMap extends Component {
     const {width, height} = size;
     const rootUrl = this.constructor.RootUrl;
 
-    return `${rootUrl}?center=${latitude},${longitude}&zoom=${zoom}&scale=${scale}&size=${width}x${height}&maptype=${mapType}&format=${format}&${this.markerParams}&${this.apiKeyParam}`;
+    var url = ``.concat(`${rootUrl}?`);
+    if (latitude && longitude)
+      url = url.concat(`center=${latitude},${longitude}&`);
+    if (zoom)
+      url = url.concat(`zoom=${zoom}&`);
+    if (scale)
+      url = url.concat(`scale=${scale}&`);
+    if (path) {
+      url = url.concat(`path=`);
+      if (pathStyle.color)
+        url = url.concat(`color:${pathStyle.color}|`);
+      if (pathStyle.weight)
+        url = url.concat(`weight:${pathStyle.weight}|`);
+      if (pathStyle.fillColor)
+        url = url.concat(`fillColor:${pathStyle.fillColor}|`);
+      if (pathStyle.geodesic)
+        url = url.concat(`geodesic:${pathStyle.geodesic}|`);
+      url = url.concat(`enc:${path}&`);
+    }
+
+    url = url.concat(`size=${width}x${height}&`);
+    url = url.concat(`maptype=${mapType}&`);
+    url = url.concat(`format=${format}&`);
+    if (this.markerParams)
+      url = url.concat(`${this.markerParams}&`);
+    url = url.concat(`${this.apiKeyParam}`);
+
+    // return `${rootUrl}?center=${latitude},${longitude}&zoom=${zoom}&scale=${scale}&size=${width}x${height}&maptype=${mapType}&format=${format}&${this.markerParams}&${this.apiKeyParam}`;
+
+    return url;
   }
 
   get markerParams() {
